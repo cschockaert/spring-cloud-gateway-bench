@@ -1,0 +1,30 @@
+Running 10s test @ http://localhost:9080/hello.txt
+  10 threads and 200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   109.97ms  293.40ms   1.49s    90.49%
+    Req/Sec     1.25k   769.84     7.29k    79.62%
+  52700 requests in 10.06s, 12.41MB read
+  Socket errors: connect 87, read 60, write 0, timeout 0
+  Non-2xx or 3xx responses: 20502
+Requests/sec:   5236.05
+Transfer/sec:      1.23MB
+Running 10s test @ http://localhost:9080/hello.txt
+  10 threads and 200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.80ms    7.44ms 160.05ms   96.71%
+    Req/Sec     1.88k     1.74k    6.55k    85.37%
+  8200 requests in 10.08s, 2.58MB read
+  Socket errors: connect 117, read 0, write 0, timeout 0
+  Non-2xx or 3xx responses: 8200
+Requests/sec:    813.23
+Transfer/sec:    262.04KB
+Running 10s test @ http://localhost:9080/hello.txt
+  10 threads and 200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    45.80ms   83.97ms 542.10ms   89.12%
+    Req/Sec     0.87k   616.31     4.05k    69.27%
+  59500 requests in 10.04s, 14.52MB read
+  Socket errors: connect 78, read 50, write 0, timeout 0
+  Non-2xx or 3xx responses: 27122
+Requests/sec:   5929.17
+Transfer/sec:      1.45MB

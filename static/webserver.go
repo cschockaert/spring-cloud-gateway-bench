@@ -28,7 +28,7 @@ func serveContent(file string) string {
 
 //REST handler
 func handler(w http.ResponseWriter, r *http.Request) {
-    log.Print("Processing request: ", r.URL.Path[1:])
+    //log.Print("Processing!!! request: ", r.URL.Path[1:])
     str := serveContent(r.URL.Path[1:])
     fmt.Fprintf(w, str)
 }

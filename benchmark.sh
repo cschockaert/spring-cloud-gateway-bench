@@ -83,6 +83,17 @@ function detectWrk() {
 
 }
 
+function detectNginx() {
+
+    if type -p nginx; then
+        echo "Found nginx executable in PATH"
+    else
+        echo "Not found nginx installed"
+        exit 1
+    fi
+
+}
+
 function setup(){
 
     detectOS
@@ -92,6 +103,8 @@ function setup(){
     detectMaven
 
     detectWrk
+
+    detectNginx
 
     mkdir -p reports
     rm ./reports/*.txt
@@ -121,12 +134,19 @@ function runStatic() {
 
 }
 
+function runNginx() {
+
+    echo "Running Nginx proxy"
+    nginx -c $(pwd)/nginx/nginx-proxy.conf
+}
+
+
 function runZuul() {
 
     echo "Running Gateway Zuul"
 
     cd zuul
-    ./mvnw clean package
+    #./mvnw clean package
     java -jar target/zuul-0.0.1-SNAPSHOT.jar
 }
 
@@ -135,7 +155,7 @@ function runGateway() {
     echo "Running Spring Gateway"
 
     cd gateway
-    ./mvnw clean package
+    #./mvnw clean package
     java -jar target/gateway-0.0.1-SNAPSHOT.jar
 }
 
@@ -147,6 +167,15 @@ function runLinkerd() {
     java -jar linkerd-1.3.4.jar linkerd.yaml
 }
 
+function runSkipper() {
+
+    echo "Running Skipper "
+
+    cd skipper
+    ./skipper -access-log-disabled -routes-file proxy.eskip
+}
+
+
 # trap ctrl-c and call ctrl_c()
 trap ctrl_c INT
 
@@ -154,6 +183,8 @@ function ctrl_c() {
         echo "** Trapped CTRL-C"
         kill $(ps aux | grep './webserver.darwin-amd64' | awk '{print $2}')
         pkill java
+        pkill nginx
+        pkill skipper
         exit 1
 }
 
@@ -161,7 +192,7 @@ function ctrl_c() {
 runStatic &
 
 echo "Verifying static webserver is running"
-
+sleep 10
 response=$(curl http://localhost:8000/hello.txt)
 if [ '{output:"I Love Spring Cloud"}' != "${response}" ]; then
     echo
@@ -170,16 +201,18 @@ if [ '{output:"I Love Spring Cloud"}' != "${response}" ]; then
     exit 1
 fi;
 
-echo "Wait 10"
-sleep 10
+echo "Wait 3"
+sleep 3
 
 function runGateways() {
 
     echo "Run Gateways"
+    runNginx &
     runZuul &
     runGateway &
     runLinkerd &
-
+    runSkipper &
+    sleep 20
 }
 
 runGateways
@@ -187,34 +220,50 @@ runGateways
 #Execute performance tests
 
 function warmup() {
-
     echo "JVM Warmup"
 
-    for run in {1..10}
-    do
-      wrk -t 10 -c 200 -d 30s http://localhost:8082/hello.txt >> ./reports/gateway.txt
-    done
+    echo "Static results"
+    wrk -t 10 -c 200 -d 5s  http://localhost:8000/hello.txt > ./reports/static.txt
 
-    for run in {1..10}
-    do
-      wrk -H "Host: web" -t 10 -c 200 -d 30s http://localhost:4140/hello.txt >> ./reports/linkerd.txt
-    done
+    echo "Wait 5 seconds"
+    sleep 5
 
-    for run in {1..10}
-    do
-      wrk -t 10 -c 200 -d 30s http://localhost:8081/hello.txt >> ./reports/zuul.txt
-    done
 }
+warmup
 
 function runPerformanceTests() {
 
-    echo "Static results"
-    wrk -t 10 -c 200 -d 30s  http://localhost:8000/hello.txt > ./reports/static.txt
 
-    echo "Wait 60 seconds"
-    sleep 60
+    for run in {1..3}
+    do
+         echo "nginx run" $run
+      wrk -t 10 -c 200 -d 10s http://localhost:9080/hello.txt >> ./reports/nginx-proxy.txt
+    done
 
-    warmup
+    for run in {1..3}
+    do
+      echo "gateway run" $run
+      wrk -t 10 -c 200 -d 10s http://localhost:8082/hello.txt >> ./reports/gateway.txt
+    done
+
+    for run in {1..3}
+    do
+        echo "linkerd run" $run
+      wrk -H "Host: web" -t 10 -c 200 -d 10s http://localhost:4140/hello.txt >> ./reports/linkerd.txt
+    done
+
+    for run in {1..3}
+    do
+        echo "zuul run" $run
+      wrk -t 10 -c 200 -d 10s http://localhost:8081/hello.txt >> ./reports/zuul.txt
+    done
+
+    for run in {1..3}
+    do
+        echo "skipper run" $run
+      wrk -t 10 -c 200 -d 10s http://localhost:9090/hello.txt >> ./reports/skipper.txt
+    done
+
 }
 
 runPerformanceTests
